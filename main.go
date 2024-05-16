@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	color "github.com/hexahigh/go-lib/ansicolor"
 	"github.com/peterbourgon/ff/v4"
 	"github.com/peterbourgon/ff/v4/ffhelp"
 )
@@ -61,6 +62,7 @@ type Params struct {
 	Help      *bool
 	Version   *bool
 	Prefix    *string
+	NoColor   *bool
 }
 
 var verbosityMap = map[int]string{0: "ERROR", 1: "WARN", 2: "INFO", 3: "DEBUG"}
@@ -75,13 +77,16 @@ func init() {
 	params.Help = fs.Bool('h', "help", "Show this help")
 	params.Version = fs.BoolLong("version", "Show version")
 	params.Prefix = fs.String('p', "prefix", "^", "Command prefix")
+	params.NoColor = fs.BoolLong("no-color", "Don't use colors in log output")
 	_ = fs.StringLong("config", "", "config file (optional)")
 
 	ff.Parse(fs, os.Args[1:],
 		ff.WithEnvVarPrefix("KRYDDER"),
 	)
 
-	verbosePrintln(3, "Running with these parameters:", params)
+	if !*params.NoColor {
+		verbosityMap = map[int]string{0: color.Red + "ERROR" + color.Reset, 1: color.Yellow + "WARN" + color.Reset, 2: color.Green + "INFO" + color.Reset, 3: color.Blue + "DEBUG" + color.Reset}
+	}
 
 	if *params.Help {
 		fmt.Println(ffhelp.Flags(fs), "\nYou can also set options through environment variables, e.g. KRYDDER_TOKEN")
