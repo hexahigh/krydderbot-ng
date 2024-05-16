@@ -2,7 +2,9 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"os/signal"
 	"strings"
@@ -13,13 +15,20 @@ import (
 	"github.com/peterbourgon/ff/v4/ffhelp"
 )
 
+var (
+	GitCommit string
+	Version   string
+	BuildTime string
+)
+
 //go:embed data/*
 var embedData embed.FS
 
 type Params struct {
-	Token     string
-	Verbosity int
-	Help      bool
+	Token     *string
+	Verbosity *int
+	Help      *bool
+	Version   *bool
 }
 
 var params Params
@@ -30,23 +39,31 @@ var verbosityMap = map[int]string{0: "ERROR", 1: "WARN", 2: "INFO", 3: "DEBUG"}
 func init() {
 	logger = log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
-	fs := ff.NewFlagSet("krydderbot-ng")
+	fs := ff.NewFlagSet("main")
 
-	params.Token = *fs.String('t', "token", "", "Bot token")
-	params.Verbosity = *fs.Int('v', "verbosity", 2, "Verbosity level (0-3)")
-	params.Help = *fs.Bool('h', "help", "Show this help")
+	params.Token = fs.String('t', "token", "", "Bot token")
+	params.Verbosity = fs.Int('v', "verbosity", 2, "Verbosity level (0-3)")
+	params.Help = fs.Bool('h', "help", "Show this help")
+	params.Version = fs.BoolLong("version", "Show version")
 	_ = fs.StringLong("config", "", "config file (optional)")
 
 	ff.Parse(fs, os.Args[1:],
 		ff.WithEnvVarPrefix("KRYDDER"),
 	)
 
-	if params.Help {
-		verbosePrintf(0, "%s\n", ffhelp.Flags(fs))
+	verbosePrintln(3, "Running with these parameters:", params)
+
+	if *params.Help {
+		fmt.Println(ffhelp.Flags(fs), "\nYou can also set options through environment variables, e.g. KRYDDER_TOKEN")
 		os.Exit(0)
 	}
 
-	if params.Token == "" {
+	if *params.Version {
+		fmt.Printf("BUILD_TIME: %s\nGIT_COMMIT: %s\nVERSION: %s\n", BuildTime, GitCommit, Version)
+		os.Exit(0)
+	}
+
+	if *params.Token == "" {
 		verbosePrintln(0, "No token specified")
 		os.Exit(1)
 	}
@@ -54,7 +71,7 @@ func init() {
 
 func main() {
 	verbosePrintln(2, "Logging in")
-	dg, err := discordgo.New("Bot " + params.Token)
+	dg, err := discordgo.New("Bot " + *params.Token)
 	if err != nil {
 		verbosePrintln(0, err)
 		return
@@ -94,7 +111,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func verbosePrintln(minLevel int, msg ...any) {
-	if params.Verbosity >= minLevel {
+	if *params.Verbosity >= minLevel {
 		msg = append([]any{"[" + verbosityMap[minLevel] + "]"}, msg...)
 		logger.Println(msg...)
 	}
@@ -125,4 +142,16 @@ func isTriggerWord(msg string) bool {
 		}
 	}
 	return false
+}
+
+func getResponse() string {
+	file, err := embedData.ReadFile("data/responses.txt")
+	if err != nil {
+		verbosePrintln(0, "Error reading responses.txt: ", err)
+		return ""
+	}
+
+	// Get a random line from the file
+	length := len(strings.Split(string(file), "\n"))
+	return strings.Split(string(file), "\n")[rand.Intn(length)]
 }

@@ -1,0 +1,1 @@
+Koden til krydderbot-ng er åpen. Du kan finne den på github.com/hexahigh/krydderbot-ng
