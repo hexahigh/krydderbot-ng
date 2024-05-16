@@ -24,19 +24,35 @@ var (
 
 var currentStatusIndex = 0
 
+var (
+	triggerWordsContent string
+	responsesContent    string
+)
+
+//go:embed data/*
+var embedData embed.FS
+
+var params Params
+var logger *log.Logger
+
 var activities = []discordgo.Activity{
 	{
 		Name: "Krydder the game",
 		Type: discordgo.ActivityTypeGame,
 	},
 	{
-		Name: "to the sound of oregano",
+		Name: "the sound of oregano",
 		Type: discordgo.ActivityTypeListening,
 	},
+	{
+		Name: "Svømmer i Oregano",
+		Type: discordgo.ActivityTypeWatching,
+	},
+	{
+		Name: "You",
+		Type: discordgo.ActivityTypeWatching,
+	},
 }
-
-//go:embed data/*
-var embedData embed.FS
 
 type Params struct {
 	Token     *string
@@ -44,9 +60,6 @@ type Params struct {
 	Help      *bool
 	Version   *bool
 }
-
-var params Params
-var logger *log.Logger
 
 var verbosityMap = map[int]string{0: "ERROR", 1: "WARN", 2: "INFO", 3: "DEBUG"}
 
@@ -81,6 +94,9 @@ func init() {
 		verbosePrintln(0, "No token specified")
 		os.Exit(1)
 	}
+
+	verbosePrintln(2, "Loading trigger words and responses into memory")
+	loadTriggerWordsAndResponses()
 }
 
 func main() {
@@ -140,41 +156,49 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	verbosePrintln(3, "Message received in ", m.ChannelID, "with content", m.Content)
 
-	if isTriggerWord(m.Message.Content) {
+	if isTrigger(m.Message.Content) {
 		_, _ = s.ChannelMessageSend(m.ChannelID, getResponse())
 	}
 }
 
-func isTriggerWord(msg string) bool {
-	// Read triggerwords.txt from embedData
-	file, err := embedData.ReadFile("data/triggerwords.txt")
-	if err != nil {
-		verbosePrintln(0, "Error reading triggerwords.txt: ", err)
-		return false
-	}
-	triggerwords := string(file)
-
+func isTrigger(msg string) bool {
 	lowerMsg := strings.ToLower(msg)
+	// Remove special characters (! , . ?)
+	lowerMsg = strings.ReplaceAll(lowerMsg, "!", "")
+	lowerMsg = strings.ReplaceAll(lowerMsg, ",", "")
+	lowerMsg = strings.ReplaceAll(lowerMsg, ".", "")
+	lowerMsg = strings.ReplaceAll(lowerMsg, "?", "")
+	lowerWords := strings.ToLower(triggerWordsContent)
 
-	// Iterate over each word in triggerwords
-	words := strings.Fields(triggerwords)
-	for _, word := range words {
-		// Check if the current word exists in the message
-		if strings.Contains(lowerMsg, word) {
-			return true
+	for _, trigWord := range strings.Fields(lowerWords) {
+		// Split the message
+		for _, msgWord := range strings.Fields(lowerMsg) {
+			if trigWord == msgWord {
+				return true
+			}
 		}
 	}
 	return false
 }
 
 func getResponse() string {
-	file, err := embedData.ReadFile("data/responses.txt")
+	// Get a random line from the file
+	length := len(strings.Split(responsesContent, "\n"))
+	return strings.Split(responsesContent, "\n")[rand.Intn(length)]
+}
+
+func loadTriggerWordsAndResponses() {
+	file, err := embedData.ReadFile("data/triggerwords.txt")
+	if err != nil {
+		verbosePrintln(0, "Error reading triggerwords.txt: ", err)
+		return
+	}
+	triggerWordsContent = string(file)
+
+	file, err = embedData.ReadFile("data/responses.txt")
 	if err != nil {
 		verbosePrintln(0, "Error reading responses.txt: ", err)
-		return ""
+		return
 	}
-
-	// Get a random line from the file
-	length := len(strings.Split(string(file), "\n"))
-	return strings.Split(string(file), "\n")[rand.Intn(length)]
+	responsesContent = string(file)
 }
