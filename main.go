@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -59,6 +60,7 @@ type Params struct {
 	Verbosity *int
 	Help      *bool
 	Version   *bool
+	Prefix    *string
 }
 
 var verbosityMap = map[int]string{0: "ERROR", 1: "WARN", 2: "INFO", 3: "DEBUG"}
@@ -72,6 +74,7 @@ func init() {
 	params.Verbosity = fs.Int('v', "verbosity", 2, "Verbosity level (0-3)")
 	params.Help = fs.Bool('h', "help", "Show this help")
 	params.Version = fs.BoolLong("version", "Show version")
+	params.Prefix = fs.String('p', "prefix", "^", "Command prefix")
 	_ = fs.StringLong("config", "", "config file (optional)")
 
 	ff.Parse(fs, os.Args[1:],
@@ -97,6 +100,9 @@ func init() {
 
 	verbosePrintln(2, "Loading trigger words and responses into memory")
 	loadTriggerWordsAndResponses()
+
+	verbosePrintln(2, "Initializing commands")
+	initCommands()
 }
 
 func main() {
@@ -154,6 +160,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
+	if strings.HasPrefix(m.Content, *params.Prefix) {
+		handleCommand(s, m)
+		return
+	}
+
 	verbosePrintln(3, "Message received in ", m.ChannelID, "with content", m.Content)
 
 	if isTrigger(m.Message.Content) {
@@ -161,13 +172,37 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
+func handleCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+	verbosePrintln(3, "Command received in ", m.ChannelID, "with content", m.Content)
+
+	// Remove the prefix
+	prefix := *params.Prefix
+	content := m.Content
+	if len(content) > len(prefix) {
+		content = content[len(prefix):]
+	}
+
+	// Split the message
+	args := strings.Fields(content)
+	name := args[0]
+	args = args[1:]
+
+	// Find the command
+	for _, command := range commands {
+		if command.Name == name {
+			// Execute the command
+			command.Execute(s, m, args)
+			return
+		}
+	}
+	_, _ = s.ChannelMessageSend(m.ChannelID, "Command not found")
+}
+
 func isTrigger(msg string) bool {
-	lowerMsg := strings.ToLower(msg)
-	// Remove special characters (! , . ?)
-	lowerMsg = strings.ReplaceAll(lowerMsg, "!", "")
-	lowerMsg = strings.ReplaceAll(lowerMsg, ",", "")
-	lowerMsg = strings.ReplaceAll(lowerMsg, ".", "")
-	lowerMsg = strings.ReplaceAll(lowerMsg, "?", "")
+	// Remove everything except letters and numbers
+	re := regexp.MustCompile(`[^a-zA-Z0-9]+`)
+	lowerMsg := re.ReplaceAllString(strings.ToLower(msg), "")
+
 	lowerWords := strings.ToLower(triggerWordsContent)
 
 	for _, trigWord := range strings.Fields(lowerWords) {
