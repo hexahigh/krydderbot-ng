@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
-	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -172,7 +171,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	verbosePrintln(3, "Message received in ", m.ChannelID, "with content", m.Content)
 
-	if isTrigger(m.Message.Content) {
+	// Only respond if the message is a trigger or the message was in a private dm
+	channel, err := s.Channel(m.ChannelID)
+	if err != nil {
+		verbosePrintln(0, err)
+		return
+	}
+	if isTrigger(m.Message.Content) || channel.Type == discordgo.ChannelTypeDM {
 		_, _ = s.ChannelMessageSend(m.ChannelID, getResponse())
 	}
 }
@@ -204,9 +209,7 @@ func handleCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func isTrigger(msg string) bool {
-	// Remove everything except letters and numbers
-	re := regexp.MustCompile(`[^a-zA-Z0-9]+`)
-	lowerMsg := re.ReplaceAllString(strings.ToLower(msg), "")
+	lowerMsg := strings.ToLower(msg)
 
 	lowerWords := strings.ToLower(triggerWordsContent)
 
