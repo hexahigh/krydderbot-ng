@@ -16,9 +16,10 @@ import (
 )
 
 var (
-	GitCommit string
-	Version   string
-	BuildTime string
+	b_GitCommit string
+	b_Version   string
+	b_BuildTime string
+	b_GoVersion string
 )
 
 //go:embed data/*
@@ -59,7 +60,7 @@ func init() {
 	}
 
 	if *params.Version {
-		fmt.Printf("BUILD_TIME: %s\nGIT_COMMIT: %s\nVERSION: %s\n", BuildTime, GitCommit, Version)
+		fmt.Printf("BUILD_TIME: %s\nGIT_COMMIT: %s\nGO_VERSION: %s\n", b_BuildTime, b_GitCommit, b_GoVersion)
 		os.Exit(0)
 	}
 
