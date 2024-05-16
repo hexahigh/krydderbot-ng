@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/peterbourgon/ff/v4"
@@ -17,10 +18,22 @@ import (
 
 var (
 	b_GitCommit string
-	b_Version   string
 	b_BuildTime string
 	b_GoVersion string
 )
+
+var currentStatusIndex = 0
+
+var activities = []discordgo.Activity{
+	{
+		Name: "Krydder the game",
+		Type: discordgo.ActivityTypeGame,
+	},
+	{
+		Name: "to the sound of oregano",
+		Type: discordgo.ActivityTypeListening,
+	},
+}
 
 //go:embed data/*
 var embedData embed.FS
@@ -78,7 +91,7 @@ func main() {
 		return
 	}
 
-	dg.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
+	dg.AddHandler(func(s *discordgo.Session, m *discordgo.Ready) {
 		verbosePrintln(2, "Bot is ready")
 	})
 
@@ -90,6 +103,8 @@ func main() {
 		return
 	}
 
+	go cycleStatuses(dg)
+
 	verbosePrintln(2, "Bot is now running. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
@@ -100,27 +115,34 @@ func main() {
 
 }
 
+func changeStatus(s *discordgo.Session, index int) {
+	activity := &activities[index]
+	s.UpdateStatusComplex(discordgo.UpdateStatusData{
+		Activities: []*discordgo.Activity{activity},
+	})
+}
+
+func cycleStatuses(s *discordgo.Session) {
+	currentIndex := currentStatusIndex
+	for {
+		verbosePrintln(3, "Changing status to", currentIndex)
+		changeStatus(s, currentIndex)
+		currentIndex = (currentIndex + 1) % len(activities)
+		time.Sleep(30 * time.Second)
+	}
+}
+
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Return if message is from the bot
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
 
-	if isTriggerWord(m.Content) {
-		_, _ = s.ChannelMessageSend(m.ChannelID, "krydder")
-	}
-}
+	verbosePrintln(3, "Message received in ", m.ChannelID, "with content", m.Content)
 
-func verbosePrintln(minLevel int, msg ...any) {
-	if *params.Verbosity >= minLevel {
-		msg = append([]any{"[" + verbosityMap[minLevel] + "]"}, msg...)
-		logger.Println(msg...)
+	if isTriggerWord(m.Message.Content) {
+		_, _ = s.ChannelMessageSend(m.ChannelID, getResponse())
 	}
-}
-
-func verbosePrintf(minLevel int, format string, msg ...any) {
-	msg = append([]any{"[" + verbosityMap[minLevel] + "]"}, msg...)
-	logger.Printf(format, msg...)
 }
 
 func isTriggerWord(msg string) bool {
