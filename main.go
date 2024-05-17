@@ -56,12 +56,15 @@ var activities = []discordgo.Activity{
 }
 
 type Params struct {
-	Token     *string
-	Verbosity *int
-	Help      *bool
-	Version   *bool
-	Prefix    *string
-	NoColor   *bool
+	Token      *string
+	Verbosity  *int
+	Help       *bool
+	Version    *bool
+	Prefix     *string
+	NoColor    *bool
+	AiEndpoint *string
+	AlwaysAi   *bool
+	AiDebug    *bool
 }
 
 var verbosityMap = map[int]string{0: "ERROR", 1: "WARN", 2: "INFO", 3: "DEBUG"}
@@ -77,10 +80,15 @@ func init() {
 	params.Version = fs.BoolLong("version", "Show version")
 	params.Prefix = fs.String('p', "prefix", "^", "Command prefix")
 	params.NoColor = fs.BoolLong("no-color", "Don't use colors in log output")
-	_ = fs.StringLong("config", "", "config file (optional)")
+	params.AiEndpoint = fs.StringLong("ai-endpoint", "", "AI Endpoint URL")
+	params.AlwaysAi = fs.BoolLong("always-ai", "Always use AI")
+	params.AiDebug = fs.BoolLong("ai-debug", "Debug AI")
+	_ = fs.String('c', "config", "", "config file (optional)")
 
 	ff.Parse(fs, os.Args[1:],
 		ff.WithEnvVarPrefix("KRYDDER"),
+		ff.WithConfigFileFlag("config"),
+		ff.WithConfigFileParser(ff.PlainParser),
 	)
 
 	if !*params.NoColor {
@@ -166,6 +174,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	if strings.HasPrefix(m.Content, *params.Prefix) {
 		handleCommand(s, m)
+		return
+	}
+
+	if *params.AlwaysAi {
+		ai(s, m, strings.Fields(m.Content))
 		return
 	}
 
