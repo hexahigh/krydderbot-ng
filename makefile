@@ -7,4 +7,4 @@ build:
 
 release: build
 	strip -s krydderbot-ng
-	upx --ultra-brute krydderbot-ng
+	upx krydderbot-ng
