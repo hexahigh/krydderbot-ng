@@ -65,6 +65,7 @@ type Params struct {
 	AiEndpoint *string
 	AlwaysAi   *bool
 	AiDebug    *bool
+	TrueColor  *bool
 }
 
 var verbosityMap = map[int]string{0: "ERROR", 1: "WARN", 2: "INFO", 3: "DEBUG"}
@@ -80,6 +81,7 @@ func init() {
 	params.Version = fs.BoolLong("version", "Show version")
 	params.Prefix = fs.String('p', "prefix", "^", "Command prefix")
 	params.NoColor = fs.BoolLong("no-color", "Don't use colors in log output")
+	params.TrueColor = fs.BoolLong("true-color", "Force truecolor")
 	params.AiEndpoint = fs.StringLong("ai-endpoint", "", "AI Endpoint URL")
 	params.AlwaysAi = fs.BoolLong("always-ai", "Always use AI")
 	params.AiDebug = fs.BoolLong("ai-debug", "Debug AI")
@@ -92,7 +94,20 @@ func init() {
 	)
 
 	if !*params.NoColor {
-		verbosityMap = map[int]string{0: color.Red + "ERROR" + color.Reset, 1: color.Yellow + "WARN" + color.Reset, 2: color.Green + "INFO" + color.Reset, 3: color.Blue + "DEBUG" + color.Reset}
+		red := color.Red
+		yellow := color.Yellow
+		green := color.Green
+		blue := color.Blue
+
+		if color.SupportsTrueColor() || *params.TrueColor {
+			verbosePrintln(3, "Terminal supports full color")
+			red = color.Red24bit
+			yellow = color.Yellow24bit
+			green = color.Green24bit
+			blue = color.Blue24bit
+		}
+
+		verbosityMap = map[int]string{0: red + "ERROR" + color.Reset, 1: yellow + "WARN" + color.Reset, 2: green + "INFO" + color.Reset, 3: blue + "DEBUG" + color.Reset}
 	}
 
 	if *params.Help {
