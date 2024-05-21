@@ -221,6 +221,7 @@ func handleCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	_, _ = s.ChannelMessageSend(m.ChannelID, "Command not found")
 }
 
+// TODO: This is a mess, improve code readability
 func isTrigger(msg string) bool {
 	lowerMsg := strings.ToLower(msg)
 
