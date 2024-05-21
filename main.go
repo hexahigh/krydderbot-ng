@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -55,6 +56,11 @@ var activities = []discordgo.Activity{
 	},
 }
 
+var supportedPlatforms = []string{
+	"linux_amd64",
+	"linux_arm64",
+}
+
 type Params struct {
 	Token      *string
 	Verbosity  *int
@@ -93,18 +99,19 @@ func init() {
 		ff.WithConfigFileParser(ff.PlainParser),
 	)
 
+	// Set up colors
 	if !*params.NoColor {
 		red := color.Red
 		yellow := color.Yellow
 		green := color.Green
-		blue := color.Blue
+		blue := color.Purple
 
 		if color.SupportsTrueColor() || *params.TrueColor {
 			verbosePrintln(3, "Terminal supports full color")
 			red = color.Red24bit
 			yellow = color.Yellow24bit
 			green = color.Green24bit
-			blue = color.Blue24bit
+			blue = color.Purple24bit
 		}
 
 		verbosityMap = map[int]string{0: red + "ERROR" + color.Reset, 1: yellow + "WARN" + color.Reset, 2: green + "INFO" + color.Reset, 3: blue + "DEBUG" + color.Reset}
@@ -123,6 +130,10 @@ func init() {
 	if *params.Token == "" {
 		verbosePrintln(0, "No token specified")
 		os.Exit(1)
+	}
+
+	if !isSupportedPlatform() {
+		verbosePrintln(1, "Running on", runtime.GOOS+"_"+runtime.GOARCH, "is not supported and may lead to unexpected behavior")
 	}
 
 	verbosePrintln(2, "Loading trigger words and responses into memory")
@@ -154,14 +165,20 @@ func main() {
 
 	go cycleStatuses(dg)
 
-	verbosePrintln(2, "Bot is now running. Press CTRL-C to exit.")
+	verbosePrintln(2, "Running. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
+	verbosePrintln(2, "Shutting down")
+
 	// Cleanly close down the Discord session.
 	dg.Close()
 
+	verbosePrintln(2, "Bye!")
+
+	// Run os.Exit just in case
+	os.Exit(0)
 }
 
 func changeStatus(s *discordgo.Session, index int) {
@@ -276,4 +293,14 @@ func loadTriggerWordsAndResponses() {
 		return
 	}
 	responsesContent = string(file)
+}
+
+func isSupportedPlatform() bool {
+	// Check if the current platform is in the supportedPlatforms array
+	for _, platform := range supportedPlatforms {
+		if runtime.GOOS+"_"+runtime.GOARCH == platform {
+			return true
+		}
+	}
+	return false
 }
