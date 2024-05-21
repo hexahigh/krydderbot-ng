@@ -10,6 +10,8 @@ github.com/hexahigh/go-lib v0.0.0-20240516203936-6e7be1c96c52 h1:ozxsRJSBu2+PLSl
 github.com/hexahigh/go-lib v0.0.0-20240516203936-6e7be1c96c52/go.mod h1:obXI9UpXHb8zk6wAFuZSxdpqtFjjxK7HNOF0AUPAudw=
 github.com/hexahigh/go-lib v0.0.0-20240516204146-492bff702a1e h1:1WUJrveHtO9qxuaeSq3zeYd/OfxMDmhNNJEdBrs1EhQ=
 github.com/hexahigh/go-lib v0.0.0-20240516204146-492bff702a1e/go.mod h1:obXI9UpXHb8zk6wAFuZSxdpqtFjjxK7HNOF0AUPAudw=
+github.com/hexahigh/go-lib v1.0.0 h1:tP5MyHlByvdiyKMLHeRT6JbtuSNV1hIg2lCHrBdy1TE=
+github.com/hexahigh/go-lib v1.0.0/go.mod h1:obXI9UpXHb8zk6wAFuZSxdpqtFjjxK7HNOF0AUPAudw=
 github.com/mitchellh/go-wordwrap v1.0.0/go.mod h1:ZXFpozHsX6DPmq2I0TCekCxypsnAUbP2oI0UX1GXzOo=
 github.com/pelletier/go-toml v1.6.0/go.mod h1:5N711Q9dKgbdkxHL+MEfF31hpT7l0S0s/t2kKREewys=
 github.com/peterbourgon/ff v1.7.1 h1:xt1lxTG+Nr2+tFtysY7abFgPoH3Lug8CwYJMOmJRXhk=

@@ -4,7 +4,7 @@ go 1.22.2
 
 require (
 	github.com/bwmarrin/discordgo v0.28.1
-	github.com/hexahigh/go-lib v0.0.0-20240516204146-492bff702a1e
+	github.com/hexahigh/go-lib v1.0.0
 	github.com/peterbourgon/ff/v4 v4.0.0-alpha.4
 )
 
