@@ -59,7 +59,7 @@ func initCommands() {
 			Description: "Runs your message through an AI",
 			Usage:       "ai <message>",
 			Execute: func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-				ai(s, m, args)
+				ai(s, m, strings.Join(args, " "))
 			},
 		},
 	}
@@ -72,7 +72,7 @@ func getHelp(command Command) string {
 	return help
 }
 
-func ai(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+func ai(s *discordgo.Session, m *discordgo.MessageCreate, msg string) {
 	s.ChannelTyping(m.ChannelID)
 	type RequestMessage struct {
 		Role    string `json:"role"`
@@ -101,7 +101,7 @@ func ai(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 
 	request.Mode = "chat"
 	request.Character = "krydderbot-ng"
-	request.Messages = append(request.Messages, RequestMessage{Role: m.Author.Username, Content: strings.Join(args, " ")})
+	request.Messages = append(request.Messages, RequestMessage{Role: m.Author.Username, Content: msg})
 
 	requestJson, _ := json.Marshal(request)
 	if *params.AiDebug {

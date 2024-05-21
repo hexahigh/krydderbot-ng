@@ -177,11 +177,6 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if *params.AlwaysAi {
-		ai(s, m, strings.Fields(m.Content))
-		return
-	}
-
 	verbosePrintln(3, "Message received in ", m.ChannelID, "with content", m.Content)
 
 	// Only respond if the message is a trigger or the message was in a private dm
@@ -191,7 +186,15 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 	if isTrigger(m.Message.Content) || channel.Type == discordgo.ChannelTypeDM {
-		_, _ = s.ChannelMessageSend(m.ChannelID, getResponse())
+
+		// If AI is always enabled, then generate the response using ai
+		if *params.AlwaysAi {
+			ai(s, m, m.Message.Content)
+		} else {
+			// Otherwise, pick a random response
+			_, _ = s.ChannelMessageSend(m.ChannelID, getResponse())
+		}
+
 	}
 }
 
